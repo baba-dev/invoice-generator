@@ -114,9 +114,9 @@ def create_pdf(invoice_data):
     pdf.cell(200, 10, txt="", ln=True)  # empty line
 
     # Add divider image
-    if os.path.exists('divider.png'):
-        y_position = pdf.get_y()  # Get the current y position
-        pdf.image('divider.png', x=0, y=pdf.get_y() - 110, w=200)  # Adjust 'x', 'y', and 'w' as needed
+    # if os.path.exists('divider.png'):
+    #    y_position = pdf.get_y()  # Get the current y position
+    #    pdf.image('divider.png', x=0, y=pdf.get_y() - 110, w=200)  # Adjust 'x', 'y', and 'w' as needed
 
     # Add dynamic paragraph
     paragraph = f"Dear {invoice_data['client_name']},\n\n" \
