@@ -21,17 +21,14 @@ if 'clear_confirm' not in st.session_state:
 if 'confPass' not in st.session_state:
     st.session_state.confPass = ''
 
-if 'apply_vat' not in st.session_state:
-    st.session_state.apply_vat = False
-
 # Database setup
 def init_db():
     conn = sqlite3.connect('invoices.db')
     c = conn.cursor()
     # Create table if it doesn't exist
     c.execute('''CREATE TABLE IF NOT EXISTS invoices
-             (id INTEGER PRIMARY KEY, invoice_number TEXT, client_name TEXT, client_address TEXT, 
-             client_contact TEXT, services TEXT, signed_by TEXT, pdf_path TEXT)''')
+                 (id INTEGER PRIMARY KEY, invoice_number TEXT, client_name TEXT, client_address TEXT, 
+                  client_contact TEXT, services TEXT, signed_by TEXT, pdf_path TEXT)''')
     # Add date_created column if it doesn't exist
     c.execute("PRAGMA table_info(invoices)")
     columns = [info[1] for info in c.fetchall()]
@@ -44,9 +41,9 @@ def save_invoice_data(invoice_data, pdf_path):
     conn = sqlite3.connect('invoices.db')
     c = conn.cursor()
     c.execute('''INSERT INTO invoices (invoice_number, client_name, client_address, client_contact, services, signed_by, pdf_path, date_created)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-           (invoice_data['invoice_number'], invoice_data['client_name'], invoice_data['client_address'],
-            invoice_data['client_contact'], str(invoice_data['services']), invoice_data['signed_by'], pdf_path, datetime.now().date()))
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
+              (invoice_data['invoice_number'], invoice_data['client_name'], invoice_data['client_address'],
+               invoice_data['client_contact'], str(invoice_data['services']), invoice_data['signed_by'], pdf_path, datetime.now().date()))
     conn.commit()
     conn.close()
 
@@ -71,7 +68,7 @@ def get_daily_invoice_count():
 init_db()
 
 # Helper function to create PDF
-def create_pdf(invoice_data, apply_vat):
+def create_pdf(invoice_data):
     pdf = fpdf.FPDF()
     pdf.add_page()
     
@@ -101,10 +98,10 @@ def create_pdf(invoice_data, apply_vat):
     
     # Add client details on the right
     pdf.set_xy(90, 10)
-    pdf.cell(120, 10, txt=f"Invoice Number: {invoice_data['invoice_number']}   ", ln=True, align="R")
-    pdf.cell(200, 5, txt=f"Client Name: {invoice_data['client_name']}   ", ln=True, align="R")
-    pdf.cell(200, 5, txt=f"Client Address: {invoice_data['client_address']}   ", ln=True, align="R")
-    pdf.cell(200, 5, txt=f"Client Contact: {invoice_data['client_contact']}   ", ln=True, align="R")
+    pdf.cell(120, 10, txt=f"Invoice Number: {invoice_data['invoice_number']}     ", ln=True, align="R")
+    pdf.cell(200, 5, txt=f"Client Name: {invoice_data['client_name']}     ", ln=True, align="R")
+    pdf.cell(200, 5, txt=f"Client Address: {invoice_data['client_address']}     ", ln=True, align="R")
+    pdf.cell(200, 5, txt=f"Client Contact: {invoice_data['client_contact']}     ", ln=True, align="R")
 
     # Calculate the last day of the current month
     now = datetime.now()
@@ -112,19 +109,19 @@ def create_pdf(invoice_data, apply_vat):
     last_day_of_month = next_month - timedelta(days=next_month.day)
     last_day_str = last_day_of_month.strftime("%d %B %y")
 
-    pdf.cell(200, 10, txt=f"Last Billable Date: {last_day_str}   ", ln=True, align="R")
+    pdf.cell(200, 10, txt=f"Last Billable Date: {last_day_str}     ", ln=True, align="R")
     
     pdf.cell(200, 10, txt="", ln=True)  # empty line
 
     # Add divider image
     # if os.path.exists('divider.png'):
-    #   y_position = pdf.get_y()  # Get the current y position
-    #   pdf.image('divider.png', x=0, y=pdf.get_y() - 110, w=200)  # Adjust 'x', 'y', and 'w' as needed
+    #    y_position = pdf.get_y()  # Get the current y position
+    #    pdf.image('divider.png', x=0, y=pdf.get_y() - 110, w=200)  # Adjust 'x', 'y', and 'w' as needed
 
     # Add dynamic paragraph
     paragraph = f"Dear {invoice_data['client_name']},\n\n" \
-          "We hope this message finds you well. We are writing to inform you that a new invoice for the services rendered by Aiwa Media Group is now available. The invoice reflects the recent transactions and services provided, and it is ready for your review and payment."
-
+                "We hope this message finds you well. We are writing to inform you that a new invoice for the services rendered by Aiwa Media Group is now available. The invoice reflects the recent transactions and services provided, and it is ready for your review and payment."
+    
     pdf.set_xy(10, pdf.get_y() + 5)
     pdf.multi_cell(180, 8, txt=paragraph)  # Use 8 as the height for reduced line spacing
 
@@ -138,15 +135,14 @@ def create_pdf(invoice_data, apply_vat):
     
     # Add total and VAT
     total = sum(value for _, value in invoice_data['services'])
-    vat = total * 0.05 if apply_vat else 0  # VAT applied if checkbox is checked
+    vat = total * 0.05  # Assuming VAT is 5%
     grand_total = total + vat
     
     pdf.cell(90, 10, txt="Total", border=1)
     pdf.cell(90, 10, txt=f"{total:.2f}", border=1, ln=True)
     
-    if apply_vat:
-        pdf.cell(90, 10, txt="VAT (5%)", border=1)
-        pdf.cell(90, 10, txt=f"{vat:.2f}", border=1, ln=True)
+    pdf.cell(90, 10, txt="VAT (5%)", border=1)
+    pdf.cell(90, 10, txt=f"{vat:.2f}", border=1, ln=True)
     
     pdf.cell(90, 10, txt="Grand Total", border=1)
     pdf.cell(90, 10, txt=f"{grand_total:.2f}", border=1, ln=True)
@@ -205,15 +201,15 @@ with st.sidebar:
     invoices = get_all_invoices()
     with st.expander("Last 10 Invoices:"):
         for invoice in invoices:
-            st.write(f"Invoice Number: {invoice[1]}, Client: {invoice[2]}")
-     
+                st.write(f"Invoice Number: {invoice[1]}, Client: {invoice[2]}")
+        
     if st.button("Clear All Invoices"):
         st.session_state.clear_confirm = True
 
     if st.session_state.clear_confirm:
         st.write("Are you sure you want to delete all invoices from the database and filesystem?")
         st.session_state.confPass = st.text_input("Enter Admin Password to clear data:", type="password")
-         
+        
         if st.session_state.confPass != "Bhogganddogg1!":
             st.warning('Please provide Printing Password.')
         else:
@@ -222,6 +218,7 @@ with st.sidebar:
             clear_all_invoices()  # Call function to clear database
             st.success("All invoices deleted.")
             st.session_state.clear_confirm = False
+
 
 # Stage 1: Client Information
 if st.session_state.stage == 1:
@@ -235,6 +232,7 @@ if st.session_state.stage == 1:
     if submitted:
         st.session_state.stage = 2
 
+
 # Stage 2: Aiwa Provided Services and Signing Agent
 if st.session_state.stage == 2:
     num_services = st.number_input("Number of Services", min_value=1, step=1, value=1)
@@ -247,13 +245,11 @@ if st.session_state.stage == 2:
     
     signed_by = st.selectbox("Application Signed By", ["Imaaduddin Khan", "Bilawal Ali"])
 
-    st.session_state.apply_vat = st.checkbox("Apply VAT (5%)", value=True)
-
     password = st.text_input("Enter Password to Print Invoice:", type="password")
     
     if password != "AiwaMediaAdmin":
         st.warning('Please provide Printing Password.')
-        st.stop()   
+        st.stop()    
     st.success('Password Accepted')
 
     submitted = st.button("Generate Invoice")
@@ -265,15 +261,15 @@ if st.session_state.stage == 2:
         time.sleep(.5)
         st.toast('Invoice Generated!', icon='🎉')
         invoice_data = {
-          'client_name': st.session_state.invoice_data['client_name'],
-          'client_address': st.session_state.invoice_data['client_address'],
-          'client_contact': st.session_state.invoice_data['client_contact'],
-          'invoice_number': st.session_state.invoice_data['invoice_number'],
-          'services': services,
-          'signed_by': signed_by
+            'client_name': st.session_state.invoice_data['client_name'],
+            'client_address': st.session_state.invoice_data['client_address'],
+            'client_contact': st.session_state.invoice_data['client_contact'],
+            'invoice_number': st.session_state.invoice_data['invoice_number'],
+            'services': services,
+            'signed_by': signed_by
         }
 
-        pdf_file = create_pdf(invoice_data, st.session_state.apply_vat)
+        pdf_file = create_pdf(invoice_data)
         if pdf_file:
             save_invoice_data(invoice_data, pdf_file)
             st.success(f"Invoice generated: {pdf_file}")
@@ -281,6 +277,7 @@ if st.session_state.stage == 2:
 
         # Reset stage for next use
         st.session_state.stage = 1
+
 
 # Download button for the generated PDF
 if st.session_state.pdf_file:
